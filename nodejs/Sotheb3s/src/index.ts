@@ -6,14 +6,13 @@ const qrcode = require('qrcode-terminal');
 const options: MetaMaskSDKOptions = {
   shouldShimWeb3: false,
   dappMetadata: {
-    name: 'NodeJS example',
-    url: 'NodeJS example',
+    name: 'Sotheb3s',
+    url: 'https://www.github.com/Dax911',
   },
   logging: {
     sdk: false,
   },
   checkInstallationImmediately: false,
-  // Optional: customize modal text
   modals: {
     install: ({ link }) => {
       qrcode.generate(link, { small: true }, (qr) => console.log(qr));
@@ -36,49 +35,51 @@ const options: MetaMaskSDKOptions = {
 
 const sdk = new MetaMaskSDK(options);
 
-const msgParams = {
-  types: {
-    EIP712Domain: [
-      { name: 'name', type: 'string' },
-      { name: 'version', type: 'string' },
-      { name: 'chainId', type: 'uint256' },
-      { name: 'verifyingContract', type: 'address' },
-    ],
-    Person: [
-      { name: 'name', type: 'string' },
-      { name: 'wallet', type: 'address' },
-    ],
-    Mail: [
-      { name: 'from', type: 'Person' },
-      { name: 'to', type: 'Person' },
-      { name: 'contents', type: 'string' },
-    ],
-  },
-  primaryType: 'Mail',
-  domain: {
-    name: 'Ether Mail',
-    version: '1',
-    chainId: '0x1',
-    verifyingContract: '0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC',
-  },
-  message: {
-    from: {
-      name: 'Cow',
-      wallet: '0xCD2a3d9F938E13CD947Ec05AbC7FE734Df8DD826',
+let bidHistory: Array<any> = [];
+
+const createBid = (fromAddress: string, itemId: number, bidAmount: number) => {
+  const msgParams = {
+    types: {
+      EIP712Domain: [
+        { name: 'name', type: 'string' },
+        { name: 'version', type: 'string' },
+        { name: 'chainId', type: 'uint256' },
+        { name: 'verifyingContract', type: 'address' },
+      ],
+      Bid: [
+        { name: 'from', type: 'Person' },
+        { name: 'itemId', type: 'uint256' },
+        { name: 'bidAmount', type: 'uint256' },
+      ],
+      Person: [
+        { name: 'name', type: 'string' },
+        { name: 'wallet', type: 'address' },
+      ],
     },
-    to: {
-      name: 'Bob',
-      wallet: '0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB',
+    primaryType: 'Bid',
+    domain: {
+      name: 'Ether Mail',
+      version: '1',
+      chainId: '0xe704',
+      verifyingContract: '0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC',
     },
-    contents: 'Hello, Bob!',
-  },
+    message: {
+      from: {
+        name: 'Bidder',
+        wallet: fromAddress,
+      },
+      itemId,
+      bidAmount,
+    },
+  };
+
+  return msgParams;
 };
 
 const start = async () => {
   console.debug(`start NodeJS example`);
 
   const accounts = await sdk.connect();
-
   console.log('connect request accounts', accounts);
 
   const ethereum = sdk.getProvider();
@@ -86,16 +87,20 @@ const start = async () => {
   ethereum.on('_initialized', async () => {
     const from = accounts?.[0];
 
+    const itemId = 1; // Get this dynamically, perhaps from user input or another source
+    const bidAmount = 1000; // Get this dynamically, perhaps from user input
+
+    const msgParams = createBid(from, itemId, bidAmount);
     const signResponse = await ethereum.request({
       method: 'eth_signTypedData_v3',
       params: [from, JSON.stringify(msgParams)],
     });
 
-
-
     console.log('sign response', signResponse);
+
+    bidHistory.push({ from, itemId, bidAmount, signature: signResponse });
+    console.log('Bid history', bidHistory);
   });
-  ethereum.request({ method: 'eth_sendTransaction', params: [] });
 };
 
 start().catch((err) => {
