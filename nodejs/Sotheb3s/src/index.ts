@@ -1,5 +1,5 @@
-import { MetaMaskSDK, MetaMaskSDKOptions, SDKProvider } from '@metamask/sdk';
-import * as fs from 'fs';
+import { MetaMaskSDK, MetaMaskSDKOptions } from '@metamask/sdk';
+import sendBid, { sendBidToStream } from './utils/store';
 
 const qrcode = require('qrcode-terminal');
 
@@ -96,8 +96,15 @@ const start = async () => {
       params: [from, JSON.stringify(msgParams)],
     });
 
-    console.log('sign response', signResponse);
+    const bidData = {
+      from,
+      itemId,
+      bidAmount,
+      signature: signResponse,
+    };
 
+    console.log('sign response', signResponse);
+    sendBid(bidData);
     bidHistory.push({ from, itemId, bidAmount, signature: signResponse });
     console.log('Bid history', bidHistory);
   });
